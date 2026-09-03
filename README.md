@@ -1,2 +1,0 @@
-# wisp
-websockets project 

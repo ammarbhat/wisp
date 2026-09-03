@@ -1,0 +1,22 @@
+[project]
+name = "wisp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "ammarbhat", email = "bhatmmr@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+]
+
+[project.scripts]
+wisp = "wisp:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
+
+[fastapi.tool]
+entrypoint = "src.wisp.main:app"
