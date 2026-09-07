@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "fastapi[standard]>=0.141.1",
+    "sqlalchemy>=2.0.52",
 ]
 
 [project.scripts]
@@ -18,5 +19,5 @@ wisp = "wisp:main"
 requires = ["uv_build>=0.12.3,<0.13.0"]
 build-backend = "uv_build"
 
-[fastapi.tool]
+[tool.fastapi]
 entrypoint = "src.wisp.main:app"
