@@ -1,6 +1,6 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, Depends
 from fastapi.responses import HTMLResponse
-from wisp.databases import engine, Base
+from wisp.databases import engine, Base, get_db
 from wisp.schemas import Note
 from sqlalchemy.orm import sessionmaker
 app = FastAPI()
@@ -46,15 +46,14 @@ async def get():
     return HTMLResponse(html)
 
 @app.websocket("/ws")
-async def first_websocket(websocket: WebSocket):
-   with Session() as session:
+async def first_websocket(websocket: WebSocket, db = Depends(get_db)):
     await websocket.accept()
-    texts = session.query(Note).all()
+    texts = db.query(Note).all()
     for q in texts:
      await websocket.send_text(q.message)
     while True:
       data = await websocket.receive_text()
       await websocket.send_text(data)
       message = Note(message=data)
-      session.add(message)
-      session.commit()
+      db.add(message)
+      db.commit()
