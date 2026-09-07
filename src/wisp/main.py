@@ -49,9 +49,12 @@ async def get():
 async def first_websocket(websocket: WebSocket):
    with Session() as session:
     await websocket.accept()
+    texts = session.query(Note).all()
+    for q in texts:
+     await websocket.send_text(q.message)
     while True:
       data = await websocket.receive_text()
-      await websocket.send_text(f"message {data}")
+      await websocket.send_text(data)
       message = Note(message=data)
       session.add(message)
       session.commit()
