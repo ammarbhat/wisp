@@ -1,7 +1,11 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
+from wisp.databases import engine, Base
+from wisp.schemas import Note
+from sqlalchemy.orm import sessionmaker
 app = FastAPI()
-
+Base.metadata.create_all(bind=engine)
+Session = sessionmaker(engine)
 html = """
 <!DOCTYPE html>
 <html>
@@ -43,7 +47,11 @@ async def get():
 
 @app.websocket("/ws")
 async def first_websocket(websocket: WebSocket):
+   with Session() as session:
     await websocket.accept()
     while True:
       data = await websocket.receive_text()
       await websocket.send_text(f"message {data}")
+      message = Note(message=data)
+      session.add(message)
+      session.commit()
