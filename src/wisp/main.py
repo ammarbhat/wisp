@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, Depends
+from fastapi import FastAPI, WebSocket, Depends, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from wisp.databases import engine, Base, get_db
 from wisp.schemas import Note
@@ -53,9 +53,12 @@ async def first_websocket(websocket: WebSocket, db=Depends(get_db)):
     texts = db.query(Note).all()
     for q in texts:
         await websocket.send_text(q.message)
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(data)
-        message = Note(message=data)
-        db.add(message)
-        db.commit()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(data)
+            message = Note(message=data)
+            db.add(message)
+            db.commit()
+    except WebSocketDisconnect:
+        await websocket.close()
