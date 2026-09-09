@@ -9,35 +9,100 @@ Base.metadata.create_all(bind=engine)
 Session = sessionmaker(engine)
 html = """
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Chat</title>
-    </head>
-    <body>
-        <h1>WebSocket Chat</h1>
-        <form action="" onsubmit="sendMessage(event)">
-            <input type="text" id="messageText" autocomplete="off"/>
-            <button>Send</button>
-        </form>
-        <ul id='messages'>
-        </ul>
-        <script>
-            var ws = new WebSocket("ws://localhost:8000/ws");
-            ws.onmessage = function(event) {
-                var messages = document.getElementById('messages')
-                var message = document.createElement('li')
-                var content = document.createTextNode(event.data)
-                message.appendChild(content)
-                messages.appendChild(message)
-            };
-            function sendMessage(event) {
-                var input = document.getElementById("messageText")
-                ws.send(input.value)
-                input.value = ''
-                event.preventDefault()
-            }
-        </script>
-    </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Notes Chat</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 480px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+        #status {
+            font-size: 0.85em;
+            margin-bottom: 12px;
+        }
+        #status.connected { color: green; }
+        #status.disconnected { color: crimson; }
+
+        #messages {
+            list-style: none;
+            padding: 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            max-height: 320px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+        #messages li {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        #messages li:last-child { border-bottom: none; }
+
+        form {
+            display: flex;
+            gap: 8px;
+        }
+        #messageText {
+            flex: 1;
+            padding: 8px;
+        }
+        button {
+            padding: 8px 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Notes Chat</h1>
+    <div id="status" class="disconnected">Connecting…</div>
+
+    <ul id="messages"></ul>
+
+    <form onsubmit="sendMessage(event)">
+        <input type="text" id="messageText" autocomplete="off" placeholder="Type a message…" />
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const statusEl = document.getElementById("status");
+        const messagesEl = document.getElementById("messages");
+
+        const ws = new WebSocket("ws://localhost:8000/ws");
+
+        ws.onopen = () => {
+            statusEl.textContent = "Connected";
+            statusEl.className = "connected";
+        };
+
+        ws.onclose = () => {
+            statusEl.textContent = "Disconnected";
+            statusEl.className = "disconnected";
+        };
+
+        ws.onerror = () => {
+            statusEl.textContent = "Connection error";
+            statusEl.className = "disconnected";
+        };
+
+        ws.onmessage = (event) => {
+            const li = document.createElement("li");
+            li.textContent = event.data;
+            messagesEl.appendChild(li);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        };
+
+        function sendMessage(event) {
+            event.preventDefault();
+            const input = document.getElementById("messageText");
+            if (!input.value.trim()) return;
+            ws.send(input.value);
+            input.value = "";
+        }
+    </script>
+</body>
 </html>
 """
 
