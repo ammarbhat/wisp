@@ -126,8 +126,15 @@ class ConnectionManager:
         await websocket.send_text(message)
 
     async def broadcast(self, message: str):
+        bad_con = []
         for conn in self.active_connections:
-            await conn.send_text(message)
+            try:
+                await conn.send_text(message)
+            except Exception:
+                bad_con.append(conn)
+        if bad_con:
+            for x in bad_con:
+                self.active_connections.remove(x)
 
 
 manager = ConnectionManager()
@@ -152,4 +159,6 @@ async def first_websocket(websocket: WebSocket, client_id: int, db=Depends(get_d
             db.add(message)
             db.commit()
     except WebSocketDisconnect:
+        await manager.broadcast("Client disconnected!")
+    finally:
         await manager.disconnect(websocket)
