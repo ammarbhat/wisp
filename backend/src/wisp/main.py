@@ -70,7 +70,10 @@ html = """
         const statusEl = document.getElementById("status");
         const messagesEl = document.getElementById("messages");
 
-        const ws = new WebSocket("ws://localhost:8000/ws");
+        // The backend's ConnectionManager expects a client_id in the URL path.
+        // Generate a random one per browser tab so each connection is distinct.
+        const clientId = Date.now();
+        const ws = new WebSocket(`ws://localhost:8000/ws/${clientId}`);
 
         ws.onopen = () => {
             statusEl.textContent = "Connected";
@@ -107,23 +110,46 @@ html = """
 """
 
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    async def disconnect(self, websocket: WebSocket):
+        await websocket.close()
+        self.active_connections.remove(websocket)
+
+    async def send_personal_text(self, websocket: WebSocket, message: str):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for conn in self.active_connections:
+            await conn.send_text(message)
+
+
+manager = ConnectionManager()
+
+
 @app.get("/")
 async def get():
     return HTMLResponse(html)
 
 
-@app.websocket("/ws")
-async def first_websocket(websocket: WebSocket, db=Depends(get_db)):
-    await websocket.accept()
+@app.websocket("/ws/{client_id}")
+async def first_websocket(websocket: WebSocket, client_id: int, db=Depends(get_db)):
+    await manager.connect(websocket)
     texts = db.query(Note).all()
     for q in texts:
-        await websocket.send_text(q.message)
+        await manager.broadcast(q.message)
     try:
         while True:
             data = await websocket.receive_text()
-            await websocket.send_text(data)
+            await manager.broadcast(f"{client_id}: {data}")
             message = Note(message=data)
             db.add(message)
             db.commit()
     except WebSocketDisconnect:
-        await websocket.close()
+        await manager.disconnect(websocket)
